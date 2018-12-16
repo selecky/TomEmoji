@@ -1,12 +1,16 @@
 package com.example.tomse.tomemoji;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -31,7 +35,11 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton shareFab;
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
+    private static final int REQUEST_STORAGE_PERMISSION = 2;
+
     String mCurrentPhotoPath;
+
+    private File photoFile;
 
 
     @Override
@@ -59,11 +67,11 @@ public class MainActivity extends AppCompatActivity {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File imagesPath = new File(this.getFilesDir(), "images");
-        if (!imagesPath.exists()){
+        if (!imagesPath.exists()) {
             imagesPath.mkdirs();
         }
 
-        File photoFile = new File(imagesPath, imageFileName);
+        photoFile = new File(imagesPath, imageFileName);
 
         // Continue only if the File was successfully created
         if (photoFile != null) {
@@ -102,13 +110,12 @@ public class MainActivity extends AppCompatActivity {
             photoView.setImageBitmap(photoBitmap);
 
 
-           // processAndSetImage();
+            // processAndSetImage();
 
         } else {
 
             // Otherwise, delete the temporary image file
-           // BitmapUtils.deleteImageFile(this, mTempPhotoPath);
-            Toast.makeText(this, "nahovno", Toast.LENGTH_SHORT).show();
+            photoFile.delete();
         }
     }
 
@@ -124,6 +131,15 @@ public class MainActivity extends AppCompatActivity {
      * @param view The closeMe button.
      */
     public void closeMe(View view) {
+        photoFile.delete();
+
+        closeFab.hide();
+        saveFab.hide();
+        shareFab.hide();
+        photoView.setVisibility(View.INVISIBLE);
+        emojifyMeButton.setVisibility(View.VISIBLE);
+
+
     }
 
 
@@ -131,6 +147,70 @@ public class MainActivity extends AppCompatActivity {
      * @param view The saveMe button.
      */
     public void saveMe(View view) {
+
+        //Check for external storage permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not granted
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                Toast.makeText(this,
+                        "You have to allow this permission in order to use this feature",
+                        Toast.LENGTH_LONG).show();
+
+
+            }
+            // No explanation needed; request the permission
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_STORAGE_PERMISSION);
+
+            // REQUEST_STORAGE_PERMISSION is an
+            // app-defined int constant. The callback method gets the
+            // result of the request.
+
+        } else{
+        // Permission has already been granted
+        saveToExternal();
+    }
+
+
+}
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_STORAGE_PERMISSION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted, yay! Do the
+                    // task you need to do.
+                    saveToExternal();
+                    
+                    
+                } else {
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    Toast.makeText(this, "You are an asshole", Toast.LENGTH_SHORT).show();
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request.
+        }
+    }
+
+
+
+    private void saveToExternal() {
+
     }
 
 
