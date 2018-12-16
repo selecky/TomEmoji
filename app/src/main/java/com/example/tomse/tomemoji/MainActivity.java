@@ -21,7 +21,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -37,7 +39,11 @@ public class MainActivity extends AppCompatActivity {
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_STORAGE_PERMISSION = 2;
 
+    // index to save image with saveFab only once
+    private int saveOnce;
+
     String mCurrentPhotoPath;
+    String mCurrentPhotoPathExt;
 
     private File photoFile;
 
@@ -104,6 +110,9 @@ public class MainActivity extends AppCompatActivity {
             saveFab.show();
             shareFab.show();
             emojifyMeButton.setVisibility(View.GONE);
+
+            // index to save image with saveFab only once
+            saveOnce = 1;
 
 
             Bitmap photoBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
@@ -173,13 +182,13 @@ public class MainActivity extends AppCompatActivity {
             // app-defined int constant. The callback method gets the
             // result of the request.
 
-        } else{
-        // Permission has already been granted
-        saveToExternal();
+        } else {
+            // Permission has already been granted
+            saveToExternal();
+        }
+
+
     }
-
-
-}
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -192,8 +201,8 @@ public class MainActivity extends AppCompatActivity {
                     // permission was granted, yay! Do the
                     // task you need to do.
                     saveToExternal();
-                    
-                    
+
+
                 } else {
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
@@ -208,11 +217,52 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private void saveToExternal() {
 
-    }
+        if (saveOnce ==1) {
+            // create file in external storage to save the photo into.
+            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+            String imageFileName = "JPEG_" + timeStamp + "_";
 
+            File extPath = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Emojify");
+            if (!extPath.exists()) {
+                extPath.mkdirs();
+            }
+
+            File photoFile2 = new File(extPath, imageFileName);
+
+            // Continue only if the File was successfully created
+            if (photoFile2 != null) {
+                // Save a file: path for use with ACTION_VIEW intents
+                mCurrentPhotoPathExt = photoFile2.getAbsolutePath();
+                Bitmap photoBitmap = BitmapFactory.decodeFile(mCurrentPhotoPathExt);
+
+                try {
+                    OutputStream fOut = new FileOutputStream(photoFile2);
+                    photoBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+                    fOut.close();
+
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+
+                // index to save image with saveFab only once
+                saveOnce = 2;
+
+                photoFile.delete();
+                Toast.makeText(this, "Photo saved at " + mCurrentPhotoPathExt, Toast.LENGTH_LONG).show();
+
+
+
+            }
+        } else {
+            Toast.makeText(this, "You already saved the image MotherFucker!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+    }
 
     /**
      * @param view The shareMe butoon
