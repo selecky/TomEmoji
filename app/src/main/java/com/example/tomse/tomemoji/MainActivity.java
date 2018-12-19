@@ -17,6 +17,7 @@ import android.support.v4.content.FileProvider;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -52,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
     private boolean isSmiling;
     private boolean isRightEyeOpen;
     private boolean isLeftEyeOpen;
+
+
+    private int smajlikInt;
+    private Bitmap smajlikBitmap;
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_STORAGE_PERMISSION = 2;
@@ -135,6 +140,10 @@ public class MainActivity extends AppCompatActivity {
 
             Bitmap photoBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
             photoView.setImageBitmap(photoBitmap);
+
+            //to put smajlik in the photoView
+            findFaces(photoBitmap);
+            photoView.setImageBitmap(smajlikBitmap);
 
 
             // processAndSetImage();
@@ -319,43 +328,53 @@ public class MainActivity extends AppCompatActivity {
                                         // Task completed successfully
                                         for (FirebaseVisionFace face : faces) {
 
+                                            Log.d("Kapitan", "SmilingProbability: " + face.getSmilingProbability()
+                                                    + "\nRightEyeOpenProbability: " + face.getRightEyeOpenProbability()
+                                                    +"\nLeftEyeOpenProbability: " + face.getLeftEyeOpenProbability());
+
                                             if (face.getSmilingProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
-                                                isSmiling = face.getSmilingProbability() > 0.7;
+                                                isSmiling = face.getSmilingProbability() > 0.5;
                                             }
                                             if (face.getRightEyeOpenProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
-                                                isRightEyeOpen = face.getRightEyeOpenProbability() > 0.7;
+                                                isRightEyeOpen = face.getRightEyeOpenProbability() > 0.5;
                                             }
                                             if (face.getLeftEyeOpenProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
-                                                isLeftEyeOpen = face.getLeftEyeOpenProbability() > 0.7;
+                                                isLeftEyeOpen = face.getLeftEyeOpenProbability() > 0.5;
                                             }
 
 
                                             if (isSmiling && isLeftEyeOpen && isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.smile, null);
+                                                smajlikInt = R.drawable.smile;
 
                                             } else if (isSmiling && isLeftEyeOpen && !isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.rightwink, null);
+                                                smajlikInt = R.drawable.rightwink;
 
                                             } else if (isSmiling && !isLeftEyeOpen && isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.leftwink, null);
+                                                smajlikInt = R.drawable.leftwink;
 
                                             } else if (isSmiling && !isLeftEyeOpen && !isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.closed_smile, null);
+                                                smajlikInt = R.drawable.closed_smile;
 
 
                                             } else if (!isSmiling && isLeftEyeOpen && isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.frown, null);
+                                                smajlikInt = R.drawable.frown;
 
                                             } else if (!isSmiling && isLeftEyeOpen && !isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.rightwinkfrown, null);
+                                                smajlikInt = R.drawable.rightwinkfrown;
 
                                             } else if (!isSmiling && !isLeftEyeOpen && isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.leftwinkfrown, null);
+                                                smajlikInt = R.drawable.leftwinkfrown;
 
                                             } else if (!isSmiling && !isLeftEyeOpen && !isRightEyeOpen) {
-                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.closed_frown, null);
+                                                smajlikInt = R.drawable.closed_frown;
 
                                             }
+
+
+                                            smajlikBitmap = BitmapFactory.decodeResource(getApplication().getResources(), smajlikInt
+                                            );
+
+
                                         }
                                     }
                                 }
@@ -369,6 +388,8 @@ public class MainActivity extends AppCompatActivity {
                                         e.printStackTrace();
                                     }
                                 });
+
+
     }
 
 }
