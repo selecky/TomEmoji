@@ -6,6 +6,10 @@
         android:name="android.hardware.camera"
         android:required="true"
         />
+
+    <meta-data
+        android:name="com.google.firebase.ml.vision.DEPENDENCIES"
+        android:value="face" />
     
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         />

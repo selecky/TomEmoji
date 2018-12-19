@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "135511984722",
+    "firebase_url": "https://ml-kit-tom.firebaseio.com",
+    "project_id": "ml-kit-tom",
+    "storage_bucket": "ml-kit-tom.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:135511984722:android:8deddb82c57446d0",
+        "android_client_info": {
+          "package_name": "com.example.tomse.tomemoji"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "135511984722-utj8pjoobkumjcta9k9rl5pdegjif7e2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6GVFMgm2TRJW_aLgBIg1KjKky_645xAU"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

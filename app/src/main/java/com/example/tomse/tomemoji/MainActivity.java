@@ -5,13 +5,16 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -20,12 +23,22 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.ml.vision.FirebaseVision;
+import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+import com.google.firebase.ml.vision.face.FirebaseVisionFace;
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
@@ -36,16 +49,21 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton saveFab;
     private FloatingActionButton shareFab;
 
+    private boolean isSmiling;
+    private boolean isRightEyeOpen;
+    private boolean isLeftEyeOpen;
+
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int REQUEST_STORAGE_PERMISSION = 2;
 
     // index to save image with saveFab only once
     private int saveOnce;
 
-    String mCurrentPhotoPath;
-    String mCurrentPhotoPathExt;
+    private String mCurrentPhotoPath;
+    private String mCurrentPhotoPathExt;
 
     private File photoFile;
+    private Uri photoURI;
 
 
     @Override
@@ -71,8 +89,8 @@ public class MainActivity extends AppCompatActivity {
 
         // create file in internal storage to save the photo into.
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File imagesPath = new File(this.getFilesDir(), "images");
+        String imageFileName = "JPEG_" + timeStamp + ".jpg";
+        File imagesPath = new File(this.getFilesDir(), "Tomimages");
         if (!imagesPath.exists()) {
             imagesPath.mkdirs();
         }
@@ -83,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
         if (photoFile != null) {
             // Save a file: path for use with ACTION_VIEW intents
             mCurrentPhotoPath = photoFile.getAbsolutePath();
-            Uri photoURI = FileProvider.getUriForFile(this,
+            photoURI = FileProvider.getUriForFile(this,
                     "com.example.android.fileprovider",
                     photoFile);
 
@@ -219,12 +237,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveToExternal() {
 
-        if (saveOnce ==1) {
+        if (saveOnce == 1) {
             // create file in external storage to save the photo into.
             String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-            String imageFileName = "JPEG_" + timeStamp + "_";
+            String imageFileName = "JPEG_" + timeStamp + ".jpg";
 
-            File extPath = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Emojify");
+            File extPath = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "/TomEmojif");
             if (!extPath.exists()) {
                 extPath.mkdirs();
             }
@@ -235,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
             if (photoFile2 != null) {
                 // Save a file: path for use with ACTION_VIEW intents
                 mCurrentPhotoPathExt = photoFile2.getAbsolutePath();
-                Bitmap photoBitmap = BitmapFactory.decodeFile(mCurrentPhotoPathExt);
+                Bitmap photoBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
 
                 try {
                     OutputStream fOut = new FileOutputStream(photoFile2);
@@ -248,12 +266,18 @@ public class MainActivity extends AppCompatActivity {
                 }
 
 
+                //make the photo available to gallery
+                Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                Uri contentUri = Uri.fromFile(photoFile2);
+                mediaScanIntent.setData(contentUri);
+                this.sendBroadcast(mediaScanIntent);
+
+
                 // index to save image with saveFab only once
                 saveOnce = 2;
 
                 photoFile.delete();
                 Toast.makeText(this, "Photo saved at " + mCurrentPhotoPathExt, Toast.LENGTH_LONG).show();
-
 
 
             }
@@ -268,5 +292,83 @@ public class MainActivity extends AppCompatActivity {
      * @param view The shareMe butoon
      */
     public void shareMe(View view) {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("image/*");
+        shareIntent.putExtra(Intent.EXTRA_STREAM, photoURI);
+        startActivity(shareIntent);
     }
+
+
+    public void findFaces(Bitmap bitmap) {
+        FirebaseVisionFaceDetectorOptions options =
+                new FirebaseVisionFaceDetectorOptions.Builder()
+                        .setClassificationMode(FirebaseVisionFaceDetectorOptions.ALL_CLASSIFICATIONS)
+                        .build();
+
+        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bitmap);
+
+        FirebaseVisionFaceDetector detector = FirebaseVision.getInstance()
+                .getVisionFaceDetector(options);
+
+        Task<List<FirebaseVisionFace>> result =
+                detector.detectInImage(image)
+                        .addOnSuccessListener(
+                                new OnSuccessListener<List<FirebaseVisionFace>>() {
+                                    @Override
+                                    public void onSuccess(List<FirebaseVisionFace> faces) {
+                                        // Task completed successfully
+                                        for (FirebaseVisionFace face : faces) {
+
+                                            if (face.getSmilingProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
+                                                isSmiling = face.getSmilingProbability() > 0.7;
+                                            }
+                                            if (face.getRightEyeOpenProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
+                                                isRightEyeOpen = face.getRightEyeOpenProbability() > 0.7;
+                                            }
+                                            if (face.getLeftEyeOpenProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
+                                                isLeftEyeOpen = face.getLeftEyeOpenProbability() > 0.7;
+                                            }
+
+
+                                            if (isSmiling && isLeftEyeOpen && isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.smile, null);
+
+                                            } else if (isSmiling && isLeftEyeOpen && !isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.rightwink, null);
+
+                                            } else if (isSmiling && !isLeftEyeOpen && isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.leftwink, null);
+
+                                            } else if (isSmiling && !isLeftEyeOpen && !isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.closed_smile, null);
+
+
+                                            } else if (!isSmiling && isLeftEyeOpen && isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.frown, null);
+
+                                            } else if (!isSmiling && isLeftEyeOpen && !isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.rightwinkfrown, null);
+
+                                            } else if (!isSmiling && !isLeftEyeOpen && isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.leftwinkfrown, null);
+
+                                            } else if (!isSmiling && !isLeftEyeOpen && !isRightEyeOpen) {
+                                                Drawable smajlik = ResourcesCompat.getDrawable(getResources(), R.drawable.closed_frown, null);
+
+                                            }
+                                        }
+                                    }
+                                }
+                        )
+
+
+                        .addOnFailureListener(
+                                new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                });
+    }
+
 }
